@@ -3,6 +3,8 @@ import { getMe } from '@/lib/auth.service';
 import { verifyAccessToken } from '@/lib/jwt';
 import { errorResponse, handleError } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const auth = req.headers.get('authorization');

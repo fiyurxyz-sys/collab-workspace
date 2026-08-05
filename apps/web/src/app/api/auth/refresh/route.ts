@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { refreshTokens } from '@/lib/auth.service';
 import { getRefreshToken, withRefreshCookie, errorResponse, handleError } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const rawToken = getRefreshToken(req);
