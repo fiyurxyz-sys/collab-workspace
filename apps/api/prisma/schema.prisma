@@ -1,0 +1,63 @@
+// This is your Prisma schema file.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────
+// Users — core auth entity
+// Future: will be referenced by workboards & board_members
+// ─────────────────────────────────────────────────────────
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password_hash String
+  name          String
+  avatar_url    String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  refresh_tokens RefreshToken[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────
+// RefreshToken — whitelist approach for logout/invalidation
+// ─────────────────────────────────────────────────────────
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token_hash String   @unique
+  user_id    String
+  expires_at DateTime
+  revoked    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────
+// Future tables (Faz 2+) — placeholder comments for FK planning
+// 
+// model Workboard {
+//   id         String   @id @default(uuid())
+//   owner_id   String
+//   owner      User     @relation(fields: [owner_id], references: [id])
+//   ...
+// }
+//
+// model BoardMember {
+//   board_id   String
+//   user_id    String
+//   role       String   // "owner" | "editor" | "viewer"
+//   ...
+// }
+// ─────────────────────────────────────────────────────────
