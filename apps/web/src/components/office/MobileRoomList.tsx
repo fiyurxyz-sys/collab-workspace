@@ -30,7 +30,7 @@ export function MobileRoomList({ rooms, onSelectRoom }: MobileRoomListProps) {
               padding: '1.25rem',
               display: 'flex',
               alignItems: 'center',
-              justify-content: 'space-between',
+              justifyContent: 'space-between',
               cursor: 'pointer',
             }}
           >
