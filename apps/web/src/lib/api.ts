@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+// Same origin — API routes are in the same Next.js app
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: typeof window !== 'undefined' ? window.location.origin : '',
   withCredentials: true, // send httpOnly refresh_token cookie automatically
   headers: {
     'Content-Type': 'application/json',
@@ -9,21 +10,16 @@ const api = axios.create({
 });
 
 // ─── Request Interceptor ─────────────────────────────────
-// Attach access token from memory (set by auth context) to every request
 api.interceptors.request.use((config) => {
   const accessToken =
-    typeof window !== 'undefined'
-      ? window.__accessToken
-      : undefined;
-
+    typeof window !== 'undefined' ? window.__accessToken : undefined;
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
 
-// ─── Response Interceptor ────────────────────────────────
-// On 401, try to refresh access token once, then retry the original request
+// ─── Response Interceptor (auto-refresh on 401) ──────────
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -31,57 +27,47 @@ let failedQueue: Array<{
 }> = [];
 
 function processQueue(error: unknown, token: string | null = null) {
-  failedQueue.forEach((p) => {
-    if (error) {
-      p.reject(error);
-    } else {
-      p.resolve(token!);
-    }
-  });
+  failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token!)));
   failedQueue = [];
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error) => {
-    const originalRequest = error.config;
+    const original = error.config;
 
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh') &&
-      !originalRequest.url?.includes('/auth/login')
+      !original._retry &&
+      !original.url?.includes('/api/auth/refresh') &&
+      !original.url?.includes('/api/auth/login')
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
+          original.headers.Authorization = `Bearer ${token}`;
+          return api(original);
         });
       }
 
-      originalRequest._retry = true;
+      original._retry = true;
       isRefreshing = true;
 
       try {
-        const { data } = await api.post('/api/auth/refresh');
+        const { data } = await api.post<{ accessToken: string }>('/api/auth/refresh');
         const newToken = data.accessToken;
-
-        if (typeof window !== 'undefined') {
-          window.__accessToken = newToken;
-        }
-
+        if (typeof window !== 'undefined') window.__accessToken = newToken;
         processQueue(null, newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
         if (typeof window !== 'undefined') {
           window.__accessToken = undefined;
           window.location.href = '/login';
         }
-        return Promise.reject(refreshError);
+        return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
       }
@@ -91,7 +77,6 @@ api.interceptors.response.use(
   },
 );
 
-// Type augmentation for window.__accessToken (in-memory storage)
 declare global {
   interface Window {
     __accessToken?: string;

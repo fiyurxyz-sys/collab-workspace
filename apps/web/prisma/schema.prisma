@@ -1,0 +1,42 @@
+// This is your Prisma schema file.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase requires directUrl for migrations
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password_hash String
+  name          String
+  avatar_url    String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  refresh_tokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token_hash String   @unique
+  user_id    String
+  expires_at DateTime
+  revoked    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// Future tables (Faz 2+):
+// model Workboard { ... owner_id → User }
+// model BoardMember { ... user_id → User, board_id → Workboard }
