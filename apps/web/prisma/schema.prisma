@@ -1,13 +1,12 @@
-// This is your Prisma schema file.
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  // Supabase requires directUrl for migrations
-  directUrl = env("DIRECT_URL")
+  // Vercel + Neon automatically provides these env vars
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
@@ -37,6 +36,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-// Future tables (Faz 2+):
-// model Workboard { ... owner_id → User }
-// model BoardMember { ... user_id → User, board_id → Workboard }
+// Future (Faz 2+):
+// model Workboard { owner_id → User }
+// model BoardMember { user_id → User, board_id → Workboard }
