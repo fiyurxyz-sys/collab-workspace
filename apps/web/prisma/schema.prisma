@@ -4,9 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // Vercel + Neon automatically provides these env vars
-  url       = env("POSTGRES_PRISMA_URL")
-  directUrl = env("POSTGRES_URL_NON_POOLING")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -35,7 +34,3 @@ model RefreshToken {
 
   @@map("refresh_tokens")
 }
-
-// Future (Faz 2+):
-// model Workboard { owner_id → User }
-// model BoardMember { user_id → User, board_id → Workboard }
